@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Calm Tech Light Palette -->
+    <color name="calm_light_background">#FAFAF9</color>       <!-- Warm white -->
+    <color name="calm_light_surface">#FFFFFF</color>            <!-- Pure white -->
+    <color name="calm_light_surface_variant">#F5F5F4</color>    <!-- Stone 100 -->
+    <color name="calm_light_primary">#2D6A4F</color>            <!-- Forest green -->
+    <color name="calm_light_primary_container">#D8F3DC</color>  <!-- Light green container -->
+    <color name="calm_light_on_primary">#FFFFFF</color>
+    <color name="calm_light_on_primary_container">#1B4332</color>
+    <color name="calm_light_secondary">#407B5F</color>           <!-- Muted green -->
+    <color name="calm_light_secondary_container">#E8F5E9</color>
+    <color name="calm_light_on_secondary">#FFFFFF</color>
+    <color name="calm_light_accent">#D97706</color>              <!-- Amber (urgency) -->
+    <color name="calm_light_accent_container">#FEF3C7</color>    <!-- Amber 50 -->
+    <color name="calm_light_on_accent">#FFFFFF</color>
+    <color name="calm_light_error">#DC2626</color>
+    <color name="calm_light_error_container">#FEF2F2</color>
+    <color name="calm_light_on_error">#FFFFFF</color>
+    <color name="calm_light_outline">#E7E5E4</color>             <!-- Stone 200 -->
+    <color name="calm_light_outline_variant">#D6D3D1</color>     <!-- Stone 300 -->
+    <color name="calm_light_text_primary">#1C1C1C</color>        <!-- Near black -->
+    <color name="calm_light_text_secondary">#525252</color>      <!-- Stone 600 -->
+    <color name="calm_light_text_tertiary">#78716C</color>       <!-- Stone 500 -->
+    <color name="calm_light_inverse_surface">#1C1C1E</color>
+    <color name="calm_light_inverse_on_surface">#F5F5F4</color>
+    <color name="calm_light_shadow">#000000</color>
+
+    <!-- Calm Tech Dark Palette -->
+    <color name="calm_dark_background">#1C1C1E</color>           <!-- Soft black -->
+    <color name="calm_dark_surface">#2C2C2E</color>              <!-- Dark gray -->
+    <color name="calm_dark_surface_variant">#3A3A3C</color>
+    <color name="calm_dark_primary">#4ADE80</color>              <!-- Mint -->
+    <color name="calm_dark_primary_container">#1B4332</color>
+    <color name="calm_dark_on_primary">#1C1C1E</color>
+    <color name="calm_dark_on_primary_container">#D8F3DC</color>
+    <color name="calm_dark_secondary">#86EFAC</color>            <!-- Light green -->
+    <color name="calm_dark_secondary_container">#14532D</color>
+    <color name="calm_dark_on_secondary">#1C1C1E</color>
+    <color name="calm_dark_accent">#FBBF24</color>               <!-- Warm amber -->
+    <color name="calm_dark_accent_container">#78350F</color>     <!-- Amber 900 -->
+    <color name="calm_dark_on_accent">#1C1C1E</color>
+    <color name="calm_dark_error">#EF4444</color>
+    <color name="calm_dark_error_container">#7F1D1D</color>
+    <color name="calm_dark_on_error">#FFFFFF</color>
+    <color name="calm_dark_outline">#3F3F46</color>              <!-- Zinc 700 -->
+    <color name="calm_dark_outline_variant">#52525B</color>      <!-- Zinc 600 -->
+    <color name="calm_dark_text_primary">#F5F5F4</color>         <!-- Stone 50 -->
+    <color name="calm_dark_text_secondary">#A3A3A3</color>       <!-- Stone 400 -->
+    <color name="calm_dark_text_tertiary">#78716C</color>        <!-- Stone 500 -->
+    <color name="calm_dark_inverse_surface">#FAFAF9</color>
+    <color name="calm_dark_inverse_on_surface">#1C1C1C</color>
+    <color name="calm_dark_shadow">#000000</color>
+
+    <!-- Notification icon (using material icon tint) -->
+    <color name="notification_icon_color">#2D6A4F</color>
+</resources>

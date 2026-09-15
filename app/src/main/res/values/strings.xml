@@ -1,0 +1,58 @@
+<resources>
+    <string name="app_name">Mi Botiquín</string>
+
+    <!-- Search -->
+    <string name="search_hint">Buscar en tu botiquín…</string>
+    <string name="search_clear">Limpiar búsqueda</string>
+
+    <!-- Categories -->
+    <string name="category_medicine">Medicamentos</string>
+    <string name="category_first_aid">Primeros auxilios</string>
+    <string name="category_topical">Tratamientos tópicos</string>
+
+    <!-- Product -->
+    <string name="product_quantity">Cantidad: %d</string>
+    <string name="product_expiry">Caduca: %s</string>
+    <string name="product_expired">Caducado</string>
+    <string name="product_expiring_soon">Caduca en %d días</string>
+    <string name="product_expiring_critical">¡Caduca en %d días!</string>
+    <string name="product_empty">Agotado</string>
+
+    <!-- Scanner -->
+    <string name="scanner_title">Escanear código de barras</string>
+    <string name="scanner_torch_on">Encender linterna</string>
+    <string name="scanner_torch_off">Apagar linterna</string>
+    <string name="scanner_gallery">Galería</string>
+    <string name="scanner_permission_title">Permiso de cámara necesario</string>
+    <string name="scanner_permission_message">Para escanear códigos de barras, la app necesita acceso a la cámara.</string>
+    <string name="scanner_permission_grant">Conceder permiso</string>
+    <string name="scanner_permission_deny">Cancelar</string>
+
+    <!-- Add Product Bottom Sheet -->
+    <string name="add_product_title">Añadir producto</string>
+    <string name="add_product_name_hint">Nombre del producto</string>
+    <string name="add_product_category">Categoría</string>
+    <string name="add_product_quantity">Cantidad</string>
+    <string name="add_product_expiry">Fecha de caducidad</string>
+    <string name="add_product_save">Guardar</string>
+    <string name="add_product_cancel">Cancelar</string>
+    <string name="add_product_saved">Producto guardado</string>
+
+    <!-- Empty States -->
+    <string name="empty_no_products">Tu botiquín está vacío</string>
+    <string name="empty_no_results">Sin resultados para \"%s\"</string>
+    <string name="empty_add_first">Añade tu primer producto escaneando su código de barras</string>
+    <string name="empty_category">Sin %1$s aún</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">Alertas de caducidad</string>
+    <string name="notification_channel_desc">Notificaciones cuando productos estén por caducar o caducados</string>
+    <string name="notification_title_expiring">%s caduca pronto</string>
+    <string name="notification_title_expired">%s ha caducado</string>
+    <string name="notification_action_keep">Mantener</string>
+    <string name="notification_action_delete">Eliminar</string>
+
+    <!-- General -->
+    <string name="error_generic">Ha ocurrido un error</string>
+    <string name="retry">Reintentar</string>
+</resources>

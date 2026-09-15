@@ -1,0 +1,9 @@
+<resources>
+    <!-- Tema mínimo: toda la UI es Compose; el tema XML solo pinta la ventana inicial -->
+    <style name="Theme.MiBotiquin" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@color/calm_light_background</item>
+    </style>
+</resources>
