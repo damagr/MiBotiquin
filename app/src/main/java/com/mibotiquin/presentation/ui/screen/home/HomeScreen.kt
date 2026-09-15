@@ -14,15 +14,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,8 +42,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mibotiquin.R
+import com.mibotiquin.domain.model.Cabinet
 import com.mibotiquin.domain.model.Category
 import com.mibotiquin.domain.model.ProductUiModel
+import com.mibotiquin.presentation.ui.components.AddProductSheet
+import com.mibotiquin.presentation.ui.components.CreateCabinetDialog
+import com.mibotiquin.presentation.ui.components.DeleteCabinetDialog
 import com.mibotiquin.presentation.ui.components.ProductCard
 import com.mibotiquin.presentation.ui.components.SearchBar
 
@@ -52,23 +60,19 @@ fun HomeScreen(
 ) {
     val query by viewModel.searchQuery.collectAsStateWithLifecycle()
     val products by viewModel.products.collectAsStateWithLifecycle()
-    val backupEvent by viewModel.backupEvent.collectAsStateWithLifecycle()
-    val focusRequester = remember { FocusRequester() }
+    val cabinets by viewModel.cabinets.collectAsStateWithLifecycle()
+    val activeCabinet by viewModel.activeCabinet.collectAsStateWithLifecycle()
+    val showCreateCabinet by viewModel.showCreateCabinet.collectAsStateWithLifecycle()
+    val cabinetToDelete by viewModel.cabinetToDelete.collectAsStateWithLifecycle()
+    val transferEvent by viewModel.transferEvent.collectAsStateWithLifecycle()
 
-    // Permiso de notificaciones (API 33+) - una sola vez al abrir
+    val focusRequester = remember { FocusRequester() }
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Permiso de notificaciones (API 33+) — una sola vez al abrir
     val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { }
-
-    // SAF: exportar / importar backup
-    val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")
-    ) { uri -> uri?.let(viewModel::exportBackup) }
-    val importLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
-    ) { uri -> uri?.let(viewModel::importBackup) }
-
     LaunchedEffect(Unit) {
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
             androidx.core.content.ContextCompat.checkSelfPermission(
@@ -80,10 +84,18 @@ fun HomeScreen(
         focusRequester.requestFocus()
     }
 
-    LaunchedEffect(backupEvent) {
-        backupEvent?.let {
-            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
-            viewModel.onBackupEventShown()
+    // SAF: exportar (crear fichero) / importar (abrir fichero)
+    val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> uri?.let(viewModel::shareCabinet) }
+    val importLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let(viewModel::importCabinet) }
+
+    LaunchedEffect(transferEvent) {
+        transferEvent?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.onTransferEventShown()
         }
     }
 
@@ -91,7 +103,7 @@ fun HomeScreen(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        // Search Bar + menú de backup — siempre visible
+        // Search Bar + menú de acciones
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -103,11 +115,26 @@ fun HomeScreen(
                 focusRequester = focusRequester,
                 modifier = Modifier.weight(1f)
             )
-            BackupMenu(
-                onExport = { exportLauncher.launch("mibotiquin_backup.json") },
-                onImport = { importLauncher.launch(arrayOf("application/json")) }
+            TransferMenu(
+                onExport = {
+                    val name = activeCabinet?.name ?: "botiquin"
+                    exportLauncher.launch("botiquin_${name.replace(" ", "_")}.json")
+                },
+                onImport = { importLauncher.launch(arrayOf("application/json")) },
+                onNewCabinet = { viewModel.onShowCreateCabinet(true) },
+                onDeleteCabinet = {
+                    activeCabinet?.let { viewModel.onRequestDeleteCabinet(it) }
+                },
+                cabinetCount = cabinets.size
             )
         }
+
+        // Selector de botiquín (discreto, sobre la lista)
+        CabinetSelector(
+            cabinets = cabinets,
+            activeCabinet = activeCabinet,
+            onSelect = viewModel::selectCabinet
+        )
 
         ProductList(
             products = products,
@@ -119,11 +146,29 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 100.dp)
+                .padding(bottom = 16.dp)
         )
     }
 
-    // Código escaneado → buscar si existe y abrir sheet (pre-rellenado si ya estaba)
+    // ---- Diálogos ----
+
+    if (showCreateCabinet) {
+        CreateCabinetDialog(
+            isMandatory = cabinets.isEmpty(),
+            onCreate = viewModel::createCabinet,
+            onDismiss = { viewModel.onShowCreateCabinet(false) }
+        )
+    }
+
+    cabinetToDelete?.let { cabinet ->
+        DeleteCabinetDialog(
+            cabinet = cabinet,
+            onConfirm = { viewModel.deleteCabinet(cabinet.id) },
+            onDismiss = viewModel::onDismissDeleteCabinet
+        )
+    }
+
+    // Código escaneado → sheet (pre-rellenado si ya existía)
     scannedBarcode?.let { barcode ->
         val existing by viewModel.existingForBarcode.collectAsStateWithLifecycle()
 
@@ -131,7 +176,7 @@ fun HomeScreen(
             viewModel.lookupBarcode(barcode)
         }
 
-        com.mibotiquin.presentation.ui.components.AddProductSheet(
+        AddProductSheet(
             barcode = barcode,
             existing = existing,
             onSave = { code, name, category, quantity, expiry ->
@@ -143,6 +188,112 @@ fun HomeScreen(
                 onBarcodeConsumed()
             }
         )
+    }
+}
+
+@Composable
+private fun CabinetSelector(
+    cabinets: List<Cabinet>,
+    activeCabinet: Cabinet?,
+    onSelect: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    if (cabinets.size <= 1 && activeCabinet != null) {
+        // Un solo botiquín: solo título, sin menú
+        Text(
+            text = activeCabinet.name,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+        return
+    }
+
+    Box(modifier = Modifier.padding(start = 4.dp)) {
+        TextButton(onClick = { expanded = true }) {
+            Text(
+                text = activeCabinet?.name ?: "Botiquín",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = "Cambiar botiquín",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            cabinets.forEach { cabinet ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = cabinet.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (cabinet.id == activeCabinet?.id)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onSelect(cabinet.id)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransferMenu(
+    onExport: () -> Unit,
+    onImport: () -> Unit,
+    onNewCabinet: () -> Unit,
+    onDeleteCabinet: () -> Unit,
+    cabinetCount: Int
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = "Opciones de botiquín",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Compartir este botiquín") },
+                onClick = { expanded = false; onExport() }
+            )
+            DropdownMenuItem(
+                text = { Text("Importar botiquín") },
+                onClick = { expanded = false; onImport() }
+            )
+            DropdownMenuItem(
+                text = { Text("Nuevo botiquín") },
+                onClick = { expanded = false; onNewCabinet() }
+            )
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = "Eliminar este botiquín",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                },
+                onClick = { expanded = false; onDeleteCabinet() },
+                enabled = cabinetCount > 1
+            )
+        }
     }
 }
 
@@ -168,7 +319,7 @@ private fun ProductList(
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(24.dp),
-        contentPadding = PaddingValues(top = 12.dp)
+        contentPadding = PaddingValues(top = 8.dp)
     ) {
         items(grouped) { (category, categoryProducts) ->
             CategorySection(
@@ -258,11 +409,10 @@ private fun EmptyState(
                 modifier = Modifier.size(80.dp)
             )
             Text(
-                text = if (query.isBlank()) {
+                text = if (query.isBlank())
                     stringResource(R.string.empty_no_products)
-                } else {
-                    stringResource(R.string.empty_no_results, query)
-                },
+                else
+                    stringResource(R.string.empty_no_results, query),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -288,41 +438,4 @@ private fun Category.icon() = when (this) {
     Category.MEDICINE -> Icons.Filled.Medication
     Category.FIRST_AID -> Icons.Filled.LocalHospital
     Category.TOPICAL -> Icons.Filled.Healing
-}
-
-@Composable
-private fun BackupMenu(
-    onExport: () -> Unit,
-    onImport: () -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                imageVector = Icons.Filled.MoreVert,
-                contentDescription = "Copia de seguridad",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        androidx.compose.material3.DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            androidx.compose.material3.DropdownMenuItem(
-                text = { Text("Exportar backup") },
-                onClick = {
-                    expanded = false
-                    onExport()
-                }
-            )
-            androidx.compose.material3.DropdownMenuItem(
-                text = { Text("Restaurar backup") },
-                onClick = {
-                    expanded = false
-                    onImport()
-                }
-            )
-        }
-    }
 }

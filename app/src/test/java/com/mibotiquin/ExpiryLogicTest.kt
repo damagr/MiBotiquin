@@ -20,6 +20,7 @@ class ExpiryLogicTest {
             category = Category.MEDICINE,
             quantity = quantity,
             expiryDate = expiry,
+            cabinetId = "test-cabinet",
             createdAt = 0,
             updatedAt = 0
         )

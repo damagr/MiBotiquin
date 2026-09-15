@@ -8,10 +8,11 @@ import com.mibotiquin.domain.model.Category
 @Entity(
     tableName = "products",
     indices = [
-        Index(value = ["barcode"], unique = true),
+        Index(value = ["barcode", "cabinetId"], unique = true),
         Index(value = ["name"]),
         Index(value = ["category"]),
-        Index(value = ["expiryDate"])
+        Index(value = ["expiryDate"]),
+        Index(value = ["cabinetId"])
     ]
 )
 data class ProductEntity(
@@ -20,7 +21,8 @@ data class ProductEntity(
     val name: String,
     val category: Category,
     val quantity: Int,
-    val expiryDate: Long,  // Timestamp en milisegundos (UTC)
+    val expiryDate: Long,          // epoch millis UTC
+    val cabinetId: String,         // FK lógica hacia cabinets
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

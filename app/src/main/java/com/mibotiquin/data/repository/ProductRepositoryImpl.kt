@@ -1,98 +1,100 @@
 package com.mibotiquin.data.repository
 
+import com.mibotiquin.data.local.dao.CabinetDao
 import com.mibotiquin.data.local.dao.ProductDao
+import com.mibotiquin.data.local.entity.CabinetEntity
 import com.mibotiquin.data.local.mapper.toDomain
 import com.mibotiquin.data.local.mapper.toEntity
+import com.mibotiquin.domain.model.Cabinet
 import com.mibotiquin.domain.model.Product
 import com.mibotiquin.domain.model.ProductUiModel
 import com.mibotiquin.domain.repository.ProductRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 class ProductRepositoryImpl(
-    private val productDao: ProductDao
+    private val productDao: ProductDao,
+    private val cabinetDao: CabinetDao
 ) : ProductRepository {
 
-    override fun getAllProducts(): Flow<List<ProductUiModel>> {
-        return productDao.getAll().map { entities ->
-            entities.map { it.toDomain().toUiModel() }
+    // ---- Botiquines ----
+
+    override fun getAllCabinets(): Flow<List<Cabinet>> =
+        cabinetDao.getAll().map { entities ->
+            entities.map { Cabinet(it.id, it.name, it.updatedAt, it.createdAt) }
         }
+
+    override suspend fun getCabinetById(id: String): Cabinet? =
+        cabinetDao.getById(id)?.let { Cabinet(it.id, it.name, it.updatedAt, it.createdAt) }
+
+    override suspend fun createCabinet(name: String, id: String?): Cabinet {
+        val entity = CabinetEntity(
+            id = id ?: java.util.UUID.randomUUID().toString(),
+            name = name.trim()
+        )
+        cabinetDao.insert(entity)
+        return Cabinet(entity.id, entity.name, entity.updatedAt, entity.createdAt)
     }
 
-    override fun getProductsByCategory(category: String): Flow<List<ProductUiModel>> {
-        return productDao.getByCategory(category).map { entities ->
-            entities.map { it.toDomain().toUiModel() }
-        }
+    override suspend fun deleteCabinet(id: String) {
+        productDao.deleteAllInCabinet(id)
+        cabinetDao.deleteById(id)
     }
 
-    override fun searchProducts(query: String): Flow<List<ProductUiModel>> {
-        if (query.isBlank()) return getAllProducts()
-        return productDao.search(query.trim()).map { entities ->
-            entities.map { it.toDomain().toUiModel() }
-        }
-    }
+    override suspend fun cabinetCount(): Int = cabinetDao.count()
 
-    override suspend fun getProductById(id: Long): ProductUiModel? {
-        return productDao.getById(id).first()?.toDomain()?.toUiModel()
-    }
+    override suspend fun getCabinetLastUpdate(id: String): Long =
+        productDao.getCabinetLastUpdate(id) ?: 0L
 
-    override suspend fun getProductByBarcode(barcode: String): ProductUiModel? {
-        return productDao.getByBarcode(barcode).first()?.toDomain()?.toUiModel()
-    }
+    // ---- Productos ----
 
-    override suspend fun addProduct(product: Product): Long {
-        return productDao.insert(product.toEntity())
-    }
+    override fun getProducts(cabinetId: String): Flow<List<ProductUiModel>> =
+        productDao.getAllInCabinet(cabinetId).map { it.map { e -> e.toDomain().toUiModel() } }
 
-    override suspend fun updateProduct(product: Product): Int {
-        return productDao.update(product.toEntity())
-    }
+    override fun getAllProducts(): Flow<List<ProductUiModel>> =
+        productDao.getAll().map { it.map { e -> e.toDomain().toUiModel() } }
 
-    override suspend fun updateQuantity(id: Long, quantity: Int): Int {
-        return productDao.getById(id).first()?.let { entity ->
-            val updated = entity.copy(
-                quantity = quantity,
-                updatedAt = System.currentTimeMillis()
+    override fun searchProducts(cabinetId: String, query: String): Flow<List<ProductUiModel>> =
+        if (query.isBlank()) getProducts(cabinetId)
+        else productDao.searchInCabinet(query.trim(), cabinetId)
+            .map { it.map { e -> e.toDomain().toUiModel() } }
+
+    override suspend fun getProductById(id: Long): ProductUiModel? =
+        productDao.getByIdOnce(id)?.toDomain()?.toUiModel()
+
+    override suspend fun getProductByBarcode(cabinetId: String, barcode: String): ProductUiModel? =
+        productDao.getByBarcodeOnce(barcode, cabinetId)?.toDomain()?.toUiModel()
+
+    override suspend fun addProduct(product: Product): Long =
+        productDao.insert(product.toEntity())
+
+    override suspend fun updateQuantity(id: Long, quantity: Int): Int =
+        productDao.getByIdOnce(id)?.let { entity ->
+            productDao.update(
+                entity.copy(quantity = quantity, updatedAt = System.currentTimeMillis())
             )
-            productDao.update(updated)
         } ?: 0
-    }
 
-    override suspend fun updateExpiryDate(id: Long, expiryDate: Long): Int {
-        return productDao.getById(id).first()?.let { entity ->
-            val updated = entity.copy(
-                expiryDate = expiryDate,
-                updatedAt = System.currentTimeMillis()
+    override suspend fun updateExpiryDate(id: Long, expiryDate: Long): Int =
+        productDao.getByIdOnce(id)?.let { entity ->
+            productDao.update(
+                entity.copy(expiryDate = expiryDate, updatedAt = System.currentTimeMillis())
             )
-            productDao.update(updated)
         } ?: 0
-    }
 
-    override suspend fun deleteProduct(id: Long): Int {
-        return productDao.deleteById(id)
-    }
+    override suspend fun deleteProduct(id: Long): Int = productDao.deleteById(id)
 
-    override suspend fun deleteProductByBarcode(barcode: String): Int {
-        return productDao.deleteByBarcode(barcode)
-    }
+    override suspend fun getEmptyCount(cabinetId: String): Int =
+        productDao.countEmptyInCabinet(cabinetId)
 
-    override suspend fun getEmptyCount(): Int {
-        return productDao.countEmpty()
-    }
+    override suspend fun getExpiredCount(cabinetId: String): Int =
+        productDao.countExpiredInCabinet(cabinetId, System.currentTimeMillis())
 
-    override suspend fun getExpiredCount(): Int {
-        return productDao.countExpired(System.currentTimeMillis())
-    }
-
-    override suspend fun getExpiringSoonCount(): Int {
+    override suspend fun getExpiringSoonCount(cabinetId: String): Int {
         val now = System.currentTimeMillis()
-        val thirtyDays = 30L * 24 * 60 * 60 * 1000
-        return productDao.countExpiringSoon(now, now + thirtyDays)
+        val threshold = now + 30L * 24 * 60 * 60 * 1000
+        return productDao.countExpiringSoonInCabinet(cabinetId, now, threshold)
     }
 }
 
-// Extension para convertir Product a ProductUiModel
-private fun Product.toUiModel(): ProductUiModel {
-    return ProductUiModel(product = this)
-}
+private fun Product.toUiModel(): ProductUiModel = ProductUiModel(product = this)

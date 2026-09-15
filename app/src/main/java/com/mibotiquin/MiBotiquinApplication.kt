@@ -9,6 +9,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.mibotiquin.data.local.database.AppDatabase
 import com.mibotiquin.data.repository.ProductRepositoryImpl
+import com.mibotiquin.data.transfer.CabinetTransferManager
+import com.mibotiquin.di.PreferencesManager
 import com.mibotiquin.domain.usecase.*
 import com.mibotiquin.notifications.ExpiryCheckWorker
 import com.mibotiquin.notifications.ExpiryNotificationHelper
@@ -27,7 +29,6 @@ class MiBotiquinApplication : Application() {
     }
 
     private fun scheduleExpiryChecks() {
-        // Revisión diaria de caducidades
         val request = PeriodicWorkRequestBuilder<ExpiryCheckWorker>(1, TimeUnit.DAYS).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             ExpiryCheckWorker.WORK_NAME,
@@ -45,32 +46,31 @@ class MiBotiquinApplication : Application() {
 class DiContainer(context: Context) {
 
     private val database = AppDatabase.getInstance(context)
-    val productRepository by lazy { ProductRepositoryImpl(database.productDao()) }
-    val backupManager by lazy {
-        com.mibotiquin.data.backup.BackupManager(context, productRepository)
+    val preferences = PreferencesManager(context)
+    val productRepository by lazy {
+        ProductRepositoryImpl(database.productDao(), database.cabinetDao())
     }
+    val transferManager by lazy { CabinetTransferManager(context, productRepository) }
 
     val viewModelFactory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T = when (modelClass) {
             HomeViewModel::class.java -> HomeViewModel(
+                getCabinetsUseCase = GetCabinetsUseCase(productRepository),
+                createCabinetUseCase = CreateCabinetUseCase(productRepository),
+                deleteCabinetUseCase = DeleteCabinetUseCase(productRepository),
                 getProductsUseCase = GetProductsUseCase(productRepository),
                 searchProductsUseCase = SearchProductsUseCase(productRepository),
                 updateProductQuantityUseCase = UpdateProductQuantityUseCase(productRepository),
                 updateProductExpiryDateUseCase = UpdateProductExpiryDateUseCase(productRepository),
                 deleteProductUseCase = DeleteProductUseCase(productRepository),
-                getEmptyCountUseCase = GetEmptyCountUseCase(productRepository),
-                getExpiredCountUseCase = GetExpiredCountUseCase(productRepository),
-                getExpiringSoonCountUseCase = GetExpiringSoonCountUseCase(productRepository),
                 addProductUseCase = AddProductUseCase(productRepository),
                 getProductByBarcodeUseCase = GetProductByBarcodeUseCase(productRepository),
-                backupManager = backupManager
+                transferManager = transferManager,
+                preferences = preferences
             ) as T
 
-            ScannerViewModel::class.java -> ScannerViewModel(
-                getProductByBarcodeUseCase = GetProductByBarcodeUseCase(productRepository),
-                addProductUseCase = AddProductUseCase(productRepository)
-            ) as T
+            ScannerViewModel::class.java -> ScannerViewModel(preferences) as T
 
             else -> throw IllegalArgumentException("ViewModel desconocido: ${modelClass.name}")
         }

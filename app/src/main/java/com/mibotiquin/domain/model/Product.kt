@@ -13,6 +13,7 @@ data class Product(
     val category: Category,
     val quantity: Int,
     val expiryDate: Long,  // epoch millis UTC
+    val cabinetId: String,
     val createdAt: Long,
     val updatedAt: Long
 ) {

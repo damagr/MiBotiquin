@@ -5,7 +5,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.mibotiquin.MiBotiquinApplication
 import com.mibotiquin.domain.model.ExpiryStatus
-import com.mibotiquin.domain.usecase.GetProductsUseCase
 import kotlinx.coroutines.flow.first
 
 class ExpiryCheckWorker(
@@ -16,7 +15,7 @@ class ExpiryCheckWorker(
     override suspend fun doWork(): Result {
         return try {
             val repository = MiBotiquinApplication.container(applicationContext).productRepository
-            val products = GetProductsUseCase(repository)().first()
+            val products = repository.getAllProducts().first()
             products
                 .filter {
                     it.expiryStatus == ExpiryStatus.SOON ||

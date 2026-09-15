@@ -1,22 +1,31 @@
 package com.mibotiquin.domain.repository
 
+import com.mibotiquin.domain.model.Cabinet
 import com.mibotiquin.domain.model.Product
 import com.mibotiquin.domain.model.ProductUiModel
 import kotlinx.coroutines.flow.Flow
 
 interface ProductRepository {
-    fun getAllProducts(): Flow<List<ProductUiModel>>
-    fun getProductsByCategory(category: String): Flow<List<ProductUiModel>>
-    fun searchProducts(query: String): Flow<List<ProductUiModel>>
+
+    // ---- Botiquines ----
+    fun getAllCabinets(): Flow<List<Cabinet>>
+    suspend fun getCabinetById(id: String): Cabinet?
+    suspend fun createCabinet(name: String, id: String? = null): Cabinet
+    suspend fun deleteCabinet(id: String)
+    suspend fun cabinetCount(): Int
+    suspend fun getCabinetLastUpdate(id: String): Long
+
+    // ---- Productos (scoped al botiquín) ----
+    fun getProducts(cabinetId: String): Flow<List<ProductUiModel>>
+    fun getAllProducts(): Flow<List<ProductUiModel>>  // para notificaciones (todos los botiquines)
+    fun searchProducts(cabinetId: String, query: String): Flow<List<ProductUiModel>>
     suspend fun getProductById(id: Long): ProductUiModel?
-    suspend fun getProductByBarcode(barcode: String): ProductUiModel?
+    suspend fun getProductByBarcode(cabinetId: String, barcode: String): ProductUiModel?
     suspend fun addProduct(product: Product): Long
-    suspend fun updateProduct(product: Product): Int
     suspend fun updateQuantity(id: Long, quantity: Int): Int
     suspend fun updateExpiryDate(id: Long, expiryDate: Long): Int
     suspend fun deleteProduct(id: Long): Int
-    suspend fun deleteProductByBarcode(barcode: String): Int
-    suspend fun getEmptyCount(): Int
-    suspend fun getExpiredCount(): Int
-    suspend fun getExpiringSoonCount(): Int
+    suspend fun getEmptyCount(cabinetId: String): Int
+    suspend fun getExpiredCount(cabinetId: String): Int
+    suspend fun getExpiringSoonCount(cabinetId: String): Int
 }
