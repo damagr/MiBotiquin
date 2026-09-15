@@ -51,7 +51,19 @@ fun HomeScreen(
     val products by viewModel.products.collectAsStateWithLifecycle()
     val focusRequester = remember { FocusRequester() }
 
+    // Permiso de notificaciones (API 33+) - una sola vez al abrir
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { }
     LaunchedEffect(Unit) {
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.POST_NOTIFICATIONS
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
         focusRequester.requestFocus()
     }
 

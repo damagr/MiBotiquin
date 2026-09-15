@@ -4,15 +4,37 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.mibotiquin.data.local.database.AppDatabase
 import com.mibotiquin.data.repository.ProductRepositoryImpl
 import com.mibotiquin.domain.usecase.*
+import com.mibotiquin.notifications.ExpiryCheckWorker
+import com.mibotiquin.notifications.ExpiryNotificationHelper
 import com.mibotiquin.presentation.ui.screen.home.HomeViewModel
 import com.mibotiquin.presentation.ui.screen.scanner.ScannerViewModel
+import java.util.concurrent.TimeUnit
 
 class MiBotiquinApplication : Application() {
 
     val diContainer by lazy { DiContainer(this) }
+
+    override fun onCreate() {
+        super.onCreate()
+        ExpiryNotificationHelper.createChannel(this)
+        scheduleExpiryChecks()
+    }
+
+    private fun scheduleExpiryChecks() {
+        // Revisión diaria de caducidades
+        val request = PeriodicWorkRequestBuilder<ExpiryCheckWorker>(1, TimeUnit.DAYS).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            ExpiryCheckWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request
+        )
+    }
 
     companion object {
         fun container(context: Context): DiContainer =
@@ -23,7 +45,7 @@ class MiBotiquinApplication : Application() {
 class DiContainer(context: Context) {
 
     private val database = AppDatabase.getInstance(context)
-    private val productRepository by lazy { ProductRepositoryImpl(database.productDao()) }
+    val productRepository by lazy { ProductRepositoryImpl(database.productDao()) }
 
     val viewModelFactory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")

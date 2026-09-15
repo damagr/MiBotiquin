@@ -38,6 +38,10 @@
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name=".notifications.ProductActionReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>
