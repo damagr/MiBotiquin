@@ -38,19 +38,22 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun AddProductSheet(
     barcode: String,
+    existing: com.mibotiquin.domain.model.ProductUiModel? = null,
     onSave: (barcode: String, name: String, category: Category, quantity: Int, expiryDate: Long) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var name by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf(Category.MEDICINE) }
-    var quantity by remember { mutableIntStateOf(1) }
+    // Pre-relleno si el producto ya existe (re-escaneo)
+    var name by remember { mutableStateOf(existing?.product?.name ?: "") }
+    var category by remember { mutableStateOf(existing?.product?.category ?: Category.MEDICINE) }
+    var quantity by remember { mutableIntStateOf(existing?.product?.quantity ?: 1) }
 
-    // Caducidad por defecto: hoy + 1 año
-    val defaultExpiry = remember {
-        LocalDate.now().plusYears(1)
-            .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    // Caducidad por defecto: la existente o hoy + 1 año
+    val defaultExpiry = remember(existing) {
+        existing?.product?.expiryDate
+            ?: LocalDate.now().plusYears(1)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
     }
     var expiryDate by remember { mutableLongStateOf(defaultExpiry) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -72,7 +75,7 @@ fun AddProductSheet(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Añadir producto",
+                text = if (existing != null) "Editar producto" else "Añadir producto",
                 style = MaterialTheme.typography.headlineSmall
             )
             Text(

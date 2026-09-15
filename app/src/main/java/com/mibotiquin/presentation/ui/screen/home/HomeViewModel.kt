@@ -23,7 +23,8 @@ class HomeViewModel(
     private val getEmptyCountUseCase: GetEmptyCountUseCase,
     private val getExpiredCountUseCase: GetExpiredCountUseCase,
     private val getExpiringSoonCountUseCase: GetExpiringSoonCountUseCase,
-    private val addProductUseCase: AddProductUseCase
+    private val addProductUseCase: AddProductUseCase,
+    private val getProductByBarcodeUseCase: GetProductByBarcodeUseCase
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -69,18 +70,34 @@ class HomeViewModel(
 
     fun addProduct(barcode: String, name: String, category: com.mibotiquin.domain.model.Category, quantity: Int, expiryDate: Long) {
         viewModelScope.launch {
+            val existing = _existingForBarcode.value?.product
             addProductUseCase(
                 com.mibotiquin.domain.model.Product(
-                    id = 0, // Room autogenera
+                    id = existing?.id ?: 0, // si existe, REPLACE mantiene el id
                     barcode = barcode,
                     name = name,
                     category = category,
                     quantity = quantity,
                     expiryDate = expiryDate,
-                    createdAt = System.currentTimeMillis(),
+                    createdAt = existing?.createdAt ?: System.currentTimeMillis(),
                     updatedAt = System.currentTimeMillis()
                 )
             )
+            _existingForBarcode.value = null
         }
+    }
+
+    // Producto existente para pre-rellenar el sheet al re-escanear
+    private val _existingForBarcode = MutableStateFlow<ProductUiModel?>(null)
+    val existingForBarcode: StateFlow<ProductUiModel?> = _existingForBarcode
+
+    fun lookupBarcode(barcode: String) {
+        viewModelScope.launch {
+            _existingForBarcode.value = getProductByBarcodeUseCase(barcode)
+        }
+    }
+
+    fun clearLookup() {
+        _existingForBarcode.value = null
     }
 }

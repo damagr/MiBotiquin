@@ -94,15 +94,25 @@ fun HomeScreen(
         )
     }
 
-    // Código escaneado → sheet de añadir producto (fricción cero)
+    // Código escaneado → buscar si existe y abrir sheet (pre-rellenado si ya estaba)
     scannedBarcode?.let { barcode ->
+        val existing by viewModel.existingForBarcode.collectAsStateWithLifecycle()
+
+        LaunchedEffect(barcode) {
+            viewModel.lookupBarcode(barcode)
+        }
+
         com.mibotiquin.presentation.ui.components.AddProductSheet(
             barcode = barcode,
+            existing = existing,
             onSave = { code, name, category, quantity, expiry ->
                 viewModel.addProduct(code, name, category, quantity, expiry)
                 onBarcodeConsumed()
             },
-            onDismiss = onBarcodeConsumed
+            onDismiss = {
+                viewModel.clearLookup()
+                onBarcodeConsumed()
+            }
         )
     }
 }

@@ -122,9 +122,13 @@ fun ScannerScreen(
                 }
             )
 
-            // Detección → feedback búho + volver con el código
+            // Detección → haptic + volver con el código
+            val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
             LaunchedEffect(detectedCode) {
-                detectedCode?.let { onScanComplete(it) }
+                detectedCode?.let {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    onScanComplete(it)
+                }
             }
 
             // Overlay con pulso (micro-animación satisfactoria)
