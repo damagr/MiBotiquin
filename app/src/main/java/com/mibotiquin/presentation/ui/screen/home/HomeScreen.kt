@@ -43,6 +43,8 @@ import com.mibotiquin.presentation.ui.components.SearchBar
 @Composable
 fun HomeScreen(
     onOpenScanner: () -> Unit,
+    scannedBarcode: String? = null,
+    onBarcodeConsumed: () -> Unit = {},
     viewModel: HomeViewModel = viewModel()
 ) {
     val query by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -69,6 +71,7 @@ fun HomeScreen(
         ProductList(
             products = products,
             query = query,
+            onAddProduct = onOpenScanner,
             onQuantityChange = viewModel::onQuantityChange,
             onExpiryDateChange = viewModel::onExpiryDateChange,
             onDeleteProduct = viewModel::onDeleteProduct,
@@ -78,19 +81,32 @@ fun HomeScreen(
                 .padding(bottom = 100.dp)
         )
     }
+
+    // Código escaneado → sheet de añadir producto (fricción cero)
+    scannedBarcode?.let { barcode ->
+        com.mibotiquin.presentation.ui.components.AddProductSheet(
+            barcode = barcode,
+            onSave = { code, name, category, quantity, expiry ->
+                viewModel.addProduct(code, name, category, quantity, expiry)
+                onBarcodeConsumed()
+            },
+            onDismiss = onBarcodeConsumed
+        )
+    }
 }
 
 @Composable
 private fun ProductList(
     products: List<ProductUiModel>,
     query: String,
+    onAddProduct: () -> Unit,
     onQuantityChange: (ProductUiModel, Int) -> Unit,
     onExpiryDateChange: (ProductUiModel, Long) -> Unit,
     onDeleteProduct: (ProductUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (products.isEmpty()) {
-        EmptyState(query = query, onAddProduct = { /* abre scanner */ })
+        EmptyState(query = query, onAddProduct = onAddProduct)
         return
     }
 

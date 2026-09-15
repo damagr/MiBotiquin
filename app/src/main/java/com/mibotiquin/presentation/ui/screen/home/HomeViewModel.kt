@@ -22,7 +22,8 @@ class HomeViewModel(
     private val deleteProductUseCase: DeleteProductUseCase,
     private val getEmptyCountUseCase: GetEmptyCountUseCase,
     private val getExpiredCountUseCase: GetExpiredCountUseCase,
-    private val getExpiringSoonCountUseCase: GetExpiringSoonCountUseCase
+    private val getExpiringSoonCountUseCase: GetExpiringSoonCountUseCase,
+    private val addProductUseCase: AddProductUseCase
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -63,6 +64,23 @@ class HomeViewModel(
     fun onDeleteProduct(product: ProductUiModel) {
         viewModelScope.launch {
             deleteProductUseCase(product.product.id)
+        }
+    }
+
+    fun addProduct(barcode: String, name: String, category: com.mibotiquin.domain.model.Category, quantity: Int, expiryDate: Long) {
+        viewModelScope.launch {
+            addProductUseCase(
+                com.mibotiquin.domain.model.Product(
+                    id = 0, // Room autogenera
+                    barcode = barcode,
+                    name = name,
+                    category = category,
+                    quantity = quantity,
+                    expiryDate = expiryDate,
+                    createdAt = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
         }
     }
 }

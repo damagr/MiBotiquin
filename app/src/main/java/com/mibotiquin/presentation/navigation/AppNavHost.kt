@@ -1,7 +1,9 @@
 package com.mibotiquin.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -16,16 +18,26 @@ object AppDestinations {
     const val HOME = "home"
     const val SCANNER = "scanner"
     const val DEEP_LINK_SCAN_URI = "mibotiquin://scan"
+    const val KEY_SCANNED_BARCODE = "scanned_barcode"
 }
 
 @Composable
 fun AppNavHost(viewModelFactory: ViewModelProvider.Factory) {
     val navController = rememberNavController()
     NavHost(navController, startDestination = AppDestinations.HOME) {
-        composable(route = AppDestinations.HOME) {
+
+        composable(route = AppDestinations.HOME) { entry ->
             val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
+            val scannedBarcode by entry.savedStateHandle
+                .getStateFlow<String?>(AppDestinations.KEY_SCANNED_BARCODE, null)
+                .collectAsStateWithLifecycle()
+
             HomeScreen(
                 onOpenScanner = { navController.navigate(AppDestinations.SCANNER) },
+                scannedBarcode = scannedBarcode,
+                onBarcodeConsumed = {
+                    entry.savedStateHandle.remove<String>(AppDestinations.KEY_SCANNED_BARCODE)
+                },
                 viewModel = homeViewModel
             )
         }
@@ -36,7 +48,13 @@ fun AppNavHost(viewModelFactory: ViewModelProvider.Factory) {
         ) {
             val scannerViewModel: ScannerViewModel = viewModel(factory = viewModelFactory)
             ScannerScreen(
-                onScanComplete = { navController.popBackStack() },
+                onScanComplete = { barcode ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(AppDestinations.KEY_SCANNED_BARCODE, barcode)
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() },
                 viewModel = scannerViewModel
             )
         }

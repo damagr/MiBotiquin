@@ -36,7 +36,8 @@ class DiContainer(context: Context) {
                 deleteProductUseCase = DeleteProductUseCase(productRepository),
                 getEmptyCountUseCase = GetEmptyCountUseCase(productRepository),
                 getExpiredCountUseCase = GetExpiredCountUseCase(productRepository),
-                getExpiringSoonCountUseCase = GetExpiringSoonCountUseCase(productRepository)
+                getExpiringSoonCountUseCase = GetExpiringSoonCountUseCase(productRepository),
+                addProductUseCase = AddProductUseCase(productRepository)
             ) as T
 
             ScannerViewModel::class.java -> ScannerViewModel(
