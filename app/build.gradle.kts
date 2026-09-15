@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -7,6 +9,19 @@ plugins {
 android {
     namespace = "com.mibotiquin"
     compileSdk = 36
+
+    val keystoreProps = Properties()
+    val propsFile = rootProject.file("keystore.properties")
+    if (propsFile.exists()) keystoreProps.load(propsFile.inputStream())
+
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file(keystoreProps.getProperty("storeFile", "release.jks"))
+            storePassword = keystoreProps.getProperty("storePassword")
+            keyAlias = keystoreProps.getProperty("keyAlias")
+            keyPassword = keystoreProps.getProperty("keyPassword")
+        }
+    }
 
     defaultConfig {
         applicationId = "com.mibotiquin"
@@ -18,6 +33,9 @@ android {
 
     buildTypes {
         release {
+            if (propsFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -31,6 +49,10 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    base {
+        archivesName.set("mibotiquin")
     }
 }
 

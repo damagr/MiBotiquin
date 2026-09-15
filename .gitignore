@@ -8,5 +8,7 @@
 /captures
 .externalNativeBuild/
 .cxx/
+keystore.properties
+release.jks
 local.properties
 gradle-wrapper.jar
