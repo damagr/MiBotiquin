@@ -17,15 +17,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Healing
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Medication
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -49,6 +52,7 @@ fun HomeScreen(
 ) {
     val query by viewModel.searchQuery.collectAsStateWithLifecycle()
     val products by viewModel.products.collectAsStateWithLifecycle()
+    val backupEvent by viewModel.backupEvent.collectAsStateWithLifecycle()
     val focusRequester = remember { FocusRequester() }
 
     // Permiso de notificaciones (API 33+) - una sola vez al abrir
@@ -56,6 +60,15 @@ fun HomeScreen(
     val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { }
+
+    // SAF: exportar / importar backup
+    val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> uri?.let(viewModel::exportBackup) }
+    val importLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let(viewModel::importBackup) }
+
     LaunchedEffect(Unit) {
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
             androidx.core.content.ContextCompat.checkSelfPermission(
@@ -67,18 +80,34 @@ fun HomeScreen(
         focusRequester.requestFocus()
     }
 
+    LaunchedEffect(backupEvent) {
+        backupEvent?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.onBackupEventShown()
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        // Search Bar — siempre visible, autofoco al abrir
-        SearchBar(
-            query = query,
-            onQueryChange = viewModel::onSearchQueryChange,
-            onScannerClick = onOpenScanner,
-            focusRequester = focusRequester,
-            modifier = Modifier.fillMaxWidth()
-        )
+        // Search Bar + menú de backup — siempre visible
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SearchBar(
+                query = query,
+                onQueryChange = viewModel::onSearchQueryChange,
+                onScannerClick = onOpenScanner,
+                focusRequester = focusRequester,
+                modifier = Modifier.weight(1f)
+            )
+            BackupMenu(
+                onExport = { exportLauncher.launch("mibotiquin_backup.json") },
+                onImport = { importLauncher.launch(arrayOf("application/json")) }
+            )
+        }
 
         ProductList(
             products = products,
@@ -259,4 +288,41 @@ private fun Category.icon() = when (this) {
     Category.MEDICINE -> Icons.Filled.Medication
     Category.FIRST_AID -> Icons.Filled.LocalHospital
     Category.TOPICAL -> Icons.Filled.Healing
+}
+
+@Composable
+private fun BackupMenu(
+    onExport: () -> Unit,
+    onImport: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = "Copia de seguridad",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        androidx.compose.material3.DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            androidx.compose.material3.DropdownMenuItem(
+                text = { Text("Exportar backup") },
+                onClick = {
+                    expanded = false
+                    onExport()
+                }
+            )
+            androidx.compose.material3.DropdownMenuItem(
+                text = { Text("Restaurar backup") },
+                onClick = {
+                    expanded = false
+                    onImport()
+                }
+            )
+        }
+    }
 }

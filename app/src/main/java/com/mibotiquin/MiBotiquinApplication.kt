@@ -46,6 +46,9 @@ class DiContainer(context: Context) {
 
     private val database = AppDatabase.getInstance(context)
     val productRepository by lazy { ProductRepositoryImpl(database.productDao()) }
+    val backupManager by lazy {
+        com.mibotiquin.data.backup.BackupManager(context, productRepository)
+    }
 
     val viewModelFactory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
@@ -60,7 +63,8 @@ class DiContainer(context: Context) {
                 getExpiredCountUseCase = GetExpiredCountUseCase(productRepository),
                 getExpiringSoonCountUseCase = GetExpiringSoonCountUseCase(productRepository),
                 addProductUseCase = AddProductUseCase(productRepository),
-                getProductByBarcodeUseCase = GetProductByBarcodeUseCase(productRepository)
+                getProductByBarcodeUseCase = GetProductByBarcodeUseCase(productRepository),
+                backupManager = backupManager
             ) as T
 
             ScannerViewModel::class.java -> ScannerViewModel(

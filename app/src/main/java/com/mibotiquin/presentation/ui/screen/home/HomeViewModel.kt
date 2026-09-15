@@ -24,7 +24,8 @@ class HomeViewModel(
     private val getExpiredCountUseCase: GetExpiredCountUseCase,
     private val getExpiringSoonCountUseCase: GetExpiringSoonCountUseCase,
     private val addProductUseCase: AddProductUseCase,
-    private val getProductByBarcodeUseCase: GetProductByBarcodeUseCase
+    private val getProductByBarcodeUseCase: GetProductByBarcodeUseCase,
+    private val backupManager: com.mibotiquin.data.backup.BackupManager
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -99,5 +100,29 @@ class HomeViewModel(
 
     fun clearLookup() {
         _existingForBarcode.value = null
+    }
+
+    // ---- Backup (Fase 2) ----
+    private val _backupEvent = MutableStateFlow<String?>(null)
+    val backupEvent: StateFlow<String?> = _backupEvent
+
+    fun exportBackup(uri: android.net.Uri) {
+        viewModelScope.launch {
+            backupManager.export(uri)
+                .onSuccess { _backupEvent.value = "Backup guardado ($it productos)" }
+                .onFailure { _backupEvent.value = "Error al exportar" }
+        }
+    }
+
+    fun importBackup(uri: android.net.Uri) {
+        viewModelScope.launch {
+            backupManager.import(uri)
+                .onSuccess { _backupEvent.value = "Backup restaurado ($it productos)" }
+                .onFailure { _backupEvent.value = "Error al importar" }
+        }
+    }
+
+    fun onBackupEventShown() {
+        _backupEvent.value = null
     }
 }
